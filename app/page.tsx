@@ -1,65 +1,162 @@
-import Image from "next/image";
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+const valueProps = [
+  {
+    title: "No test scripts needed",
+    description:
+      "Describe a URL and goal in Slack. The agent explores the site and reports what it finds.",
+  },
+  {
+    title: "Bugs where your team already works",
+    description:
+      "QA results land in Slack so founders, PMs, and developers can find, discuss, and fix issues together.",
+  },
+  {
+    title: "Proof developers can act on",
+    description:
+      "Every run includes screenshots, logs, and steps so fixes start with context, not guesswork.",
+  },
+  {
+    title: "QA Memory in Insforge",
+    description:
+      "Every run is saved so teams can compare results, spot regressions, and track quality over time.",
+  },
+] as const;
+
+const steps = [
+  {
+    step: "1",
+    title: "Run /qa-test in Slack",
+    description:
+      "Share a website URL and what you want checked. AgentQA picks up the job from your workspace.",
+  },
+  {
+    step: "2",
+    title: "Agent tests and captures proof",
+    description:
+      "Playwright runs the site, records screenshots and logs, and posts findings back to the channel.",
+  },
+  {
+    step: "3",
+    title: "Open the QA Memory report",
+    description:
+      "Your dev team reviews the saved run with full context in Insforge and ships fixes faster.",
+  },
+] as const;
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[0.8125rem] font-medium tracking-[0.02em] text-stone-500">
+      {children}
+    </p>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="relative min-h-screen overflow-hidden px-6 py-14 sm:py-20">
+      <div
+        className="home-glow pointer-events-none absolute inset-0"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-24 top-32 h-72 w-72 rounded-full bg-black/5 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -left-16 bottom-40 h-64 w-64 rounded-full bg-stone-300/20 blur-3xl"
+        aria-hidden
+      />
+
+      <div className="relative mx-auto w-full max-w-5xl">
+        {/* Hero */}
+        <section className="max-w-2xl">
+          <span className="animate-fade-up delay-1 inline-flex items-center rounded-full border border-black/10 bg-white/80 px-4 py-1.5 text-[0.8125rem] font-medium text-stone-800">
+            Slack-native AI QA
+          </span>
+
+          <h1 className="font-display animate-fade-up delay-2 mt-6 text-[3.25rem] font-semibold leading-[1.05] tracking-[-0.03em] text-stone-900 sm:text-7xl">
+            AgentQA
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="font-display animate-fade-up delay-3 mt-5 text-2xl font-medium leading-snug tracking-[-0.02em] text-stone-800 sm:text-[2rem]">
+            Deploy QA agents from Slack.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+          <p className="animate-fade-up delay-4 mt-6 max-w-xl text-[1.0625rem] leading-[1.75] text-stone-600">
+            Run website QA tests directly from Slack, share bugs with your dev
+            team instantly, and save every run as QA Memory in Insforge.
+          </p>
+
+          <div className="animate-fade-up delay-5 mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link
+              className="btn-primary inline-flex h-12 items-center justify-center px-7 text-sm font-semibold text-white"
+              href="/runs"
+            >
+              View Runs
+            </Link>
+            <Link
+              className="btn-secondary inline-flex h-12 items-center justify-center px-7 text-sm font-semibold text-stone-800"
+              href="/install"
+            >
+              Install Slack App
+            </Link>
+          </div>
+        </section>
+
+        {/* Value */}
+        <section className="mt-24 sm:mt-28">
+          <SectionLabel>Why teams use AgentQA</SectionLabel>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {valueProps.map((item, index) => (
+              <div
+                key={item.title}
+                className="home-card animate-fade-up p-7 sm:p-8"
+                style={{ animationDelay: `${0.28 + index * 0.06}s` }}
+              >
+                <span
+                  className="mb-4 inline-block h-1.5 w-8 rounded-full bg-stone-900/80"
+                  aria-hidden
+                />
+                <h3 className="font-display text-lg font-semibold tracking-[-0.02em] text-stone-900">
+                  {item.title}
+                </h3>
+                <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-stone-600">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="mt-24 sm:mt-28">
+          <SectionLabel>How it works</SectionLabel>
+          <ol className="mt-5 grid gap-4 lg:grid-cols-3">
+            {steps.map((item, index) => (
+              <li
+                key={item.step}
+                className="home-card animate-fade-up p-7 sm:p-8"
+                style={{ animationDelay: `${0.52 + index * 0.08}s` }}
+              >
+                <span
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-stone-900 text-sm font-semibold text-white shadow-sm shadow-black/20"
+                  aria-hidden
+                >
+                  {item.step}
+                </span>
+                <h3 className="font-display mt-5 text-lg font-semibold tracking-[-0.02em] text-stone-900">
+                  {item.title}
+                </h3>
+                <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-stone-600">
+                  {item.description}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </div>
+    </main>
   );
 }

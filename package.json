@@ -9,9 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.3.0",
+    "@slack/web-api": "^7.16.0",
     "next": "16.2.7",
+    "playwright": "^1.60.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

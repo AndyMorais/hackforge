@@ -24,6 +24,10 @@
 .DS_Store
 *.pem
 
+# local QA data and captured pages
+/data/*.json
+/public/screenshots/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

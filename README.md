@@ -130,5 +130,5 @@ AgentQA is currently intended to run locally while connected to a Slack app and 
 - Playwright goal matching is basic and may not fully understand complex flows.
 - Local JSON storage is a backup, not a production database.
 - Insforge table/schema management is not automated in this app.
-- Slack request verification is not fully hardened for production use.
+- Dashboard access control and broader production hardening are still in progress.
 - The early version is intended for local development workflows, not production QA coverage.

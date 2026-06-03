@@ -1,6 +1,6 @@
 # AgentQA
 
-AgentQA is a Slack-native AI QA agent for running quick website tests from a Slack channel.
+AgentQA is a Slack-native AI QA agent for running quick website tests from a Slack channel. The current local-first version runs with Slack, Playwright, and Insforge configured through environment variables.
 
 Users run `/qa-test` with a website URL and a goal. AgentQA opens the site with Playwright, checks the flow, captures screenshots and console logs, generates a QA report, and saves the run as QA Memory.
 
@@ -120,13 +120,15 @@ https://your-public-app-url.com/api/slack/oauth
 
 - Use `/install` in the app to start the Slack install flow.
 
-For local demos, use a public tunnel URL such as Cloudflare Tunnel and set `NEXT_PUBLIC_APP_URL` to that public URL.
+For local development, use a public tunnel URL such as Cloudflare Tunnel and set `NEXT_PUBLIC_APP_URL` to that public URL.
 
-## Current MVP Limitations
+AgentQA is currently intended to run locally while connected to a Slack app and Insforge project. Production hardening is still in progress.
+
+## Current Limitations
 
 - The report generator uses simple rule-based logic, not a real LLM call yet.
 - Playwright goal matching is basic and may not fully understand complex flows.
 - Local JSON storage is a backup, not a production database.
 - Insforge table/schema management is not automated in this app.
 - Slack request verification is not fully hardened for production use.
-- The app is intended for hackathon demo use, not production QA coverage.
+- The early version is intended for local development workflows, not production QA coverage.

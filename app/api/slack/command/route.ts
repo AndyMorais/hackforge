@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { env } from "@/lib/env";
 import { mirrorTestRunToInsforge } from "@/lib/insforge/testRuns";
 import { generateReport } from "@/lib/qa/generateReport";
@@ -9,12 +10,20 @@ import {
   type TestRun,
 } from "@/lib/storage/testRuns";
 
+export const maxDuration = 60;
+
 type SlackCommandPayload = {
   text: string;
   userId: string;
   channelId: string;
   teamId: string;
   responseUrl: string;
+};
+
+type SlackResponse = {
+  response_type: "in_channel" | "ephemeral";
+  text: string;
+  blocks?: SlackBlock[];
 };
 
 type SlackBlock =
@@ -64,6 +73,10 @@ function parseCommandText(text: string) {
   const goal = goalParts.join(" ").trim();
 
   return { url, goal };
+}
+
+function createRunId() {
+  return `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function runResult(run: TestRun) {
@@ -198,6 +211,140 @@ function getSlackResultBlocks({
   ];
 }
 
+async function runQaAndPostResult({
+  appUrl,
+  goal,
+  responseUrl,
+  url,
+}: {
+  appUrl: string;
+  goal: string;
+  responseUrl: string;
+  url: string;
+}) {
+  try {
+    const testResult = await runWebsiteTest({ url, goal });
+    const report = generateReport(testResult);
+    const runId = createRunId();
+    const createdAt = new Date().toISOString();
+    let savedRun: TestRun = {
+      id: runId,
+      url: testResult.url,
+      goal: testResult.goal,
+      title: testResult.title,
+      status: testResult.status,
+      steps: testResult.steps,
+      bugs: testResult.bugs,
+      consoleLogs: testResult.consoleLogs,
+      summary: report.summary,
+      result: report.result,
+      mainIssue: report.mainIssue,
+      suggestedFix: report.suggestedFix,
+      createdAt,
+    };
+
+    try {
+      savedRun = await saveTestRun({
+        ...testResult,
+        ...report,
+        id: runId,
+        createdAt,
+      });
+    } catch (saveError) {
+      console.warn("Local QA run save skipped.", saveError);
+    }
+
+    let previousRun: TestRun | null = null;
+
+    try {
+      previousRun = await getPreviousRunForSameTest(
+        savedRun.url,
+        savedRun.goal,
+        savedRun.id,
+      );
+    } catch (memoryError) {
+      console.warn("QA Memory lookup skipped.", memoryError);
+    }
+
+    const memoryNote = getMemoryNote(previousRun, savedRun);
+    let runForResponse: TestRun = {
+      ...savedRun,
+      previousRunId: previousRun?.id,
+      memoryNote,
+    };
+
+    try {
+      const completedRun = await updateTestRunMemory(savedRun.id, {
+        previousRunId: previousRun?.id,
+        memoryNote,
+      });
+
+      runForResponse = completedRun ?? runForResponse;
+    } catch (memoryError) {
+      console.warn("QA Memory update skipped.", memoryError);
+    }
+
+    await mirrorTestRunToInsforge(runForResponse);
+
+    const reportUrl = `${appUrl.replace(/\/$/, "")}/runs/${runForResponse.id}`;
+    const isFailed = report.result === "failed";
+    const status = isFailed ? "Failed" : "Passed";
+    const mainIssue =
+      testResult.bugs.length === 0 ? "No major issues found." : report.mainIssue;
+    const fallbackText = [
+      isFailed ? "🚨 QA Test Failed" : "✅ QA Test Passed",
+      `Status: ${status}`,
+      `Bugs found: ${testResult.bugs.length}`,
+      `Main issue: ${mainIssue}`,
+      memoryNote,
+      `Report: ${reportUrl}`,
+    ].join("\n");
+
+    await postSlackResponse(responseUrl, {
+      response_type: "in_channel",
+      text: fallbackText,
+      blocks: getSlackResultBlocks({
+        bugsFound: testResult.bugs.length,
+        goal: testResult.goal,
+        isFailed,
+        mainIssue,
+        memoryNote,
+        reportUrl,
+        suggestedFix: report.suggestedFix,
+        url: testResult.url,
+      }),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    await postSlackResponse(responseUrl, {
+      response_type: "in_channel",
+      text: `QA test failed to complete. ${message}`,
+    });
+  }
+}
+
+async function postSlackResponse(responseUrl: string, payload: SlackResponse) {
+  if (!responseUrl) {
+    console.warn("Slack response_url missing; unable to post QA result.");
+    return;
+  }
+
+  const response = await fetch(responseUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    console.warn("Failed to post Slack response.", {
+      status: response.status,
+      statusText: response.statusText,
+      body: await response.text(),
+    });
+  }
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const payload: SlackCommandPayload = {
@@ -216,60 +363,19 @@ export async function POST(request: Request) {
     });
   }
 
-  try {
-    const testResult = await runWebsiteTest({ url, goal });
-    const report = generateReport(testResult);
-    const savedRun = await saveTestRun({ ...testResult, ...report });
-    await mirrorTestRunToInsforge(savedRun);
-    const previousRun = await getPreviousRunForSameTest(
-      savedRun.url,
-      savedRun.goal,
-      savedRun.id,
-    );
-    const memoryNote = getMemoryNote(previousRun, savedRun);
+  const appUrl = getReportBaseUrl(request);
 
-    const completedRun = await updateTestRunMemory(savedRun.id, {
-      previousRunId: previousRun?.id,
-      memoryNote,
-    });
+  after(() =>
+    runQaAndPostResult({
+      appUrl,
+      goal,
+      responseUrl: payload.responseUrl,
+      url,
+    }),
+  );
 
-    const runForResponse = completedRun ?? savedRun;
-
-    const appUrl = getReportBaseUrl(request);
-    const reportUrl = `${appUrl.replace(/\/$/, "")}/runs/${runForResponse.id}`;
-    const isFailed = report.result === "failed";
-    const status = isFailed ? "Failed" : "Passed";
-    const mainIssue =
-      testResult.bugs.length === 0 ? "No major issues found." : report.mainIssue;
-    const fallbackText = [
-      isFailed ? "🚨 QA Test Failed" : "✅ QA Test Passed",
-      `Status: ${status}`,
-      `Bugs found: ${testResult.bugs.length}`,
-      `Main issue: ${mainIssue}`,
-      memoryNote,
-      `Report: ${reportUrl}`,
-    ].join("\n");
-
-    return Response.json({
-      response_type: "in_channel",
-      text: fallbackText,
-      blocks: getSlackResultBlocks({
-        bugsFound: testResult.bugs.length,
-        goal: testResult.goal,
-        isFailed,
-        mainIssue,
-        memoryNote,
-        reportUrl,
-        suggestedFix: report.suggestedFix,
-        url: testResult.url,
-      }),
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    return Response.json({
-      response_type: "ephemeral",
-      text: `QA test failed to run: ${message}`,
-    });
-  }
+  return Response.json({
+    response_type: "in_channel",
+    text: `QA test started for ${url}. I’ll post the report here when it’s done.`,
+  });
 }

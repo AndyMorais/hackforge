@@ -96,6 +96,12 @@ function escapeSlackText(text: string) {
     .replaceAll(">", "&gt;");
 }
 
+function getReportBaseUrl(request: Request) {
+  const configuredAppUrl = env.NEXT_PUBLIC_APP_URL.trim();
+
+  return configuredAppUrl || new URL(request.url).origin;
+}
+
 function getSlackResultBlocks({
   bugsFound,
   goal,
@@ -214,6 +220,7 @@ export async function POST(request: Request) {
     const testResult = await runWebsiteTest({ url, goal });
     const report = generateReport(testResult);
     const savedRun = await saveTestRun({ ...testResult, ...report });
+    await mirrorTestRunToInsforge(savedRun);
     const previousRun = await getPreviousRunForSameTest(
       savedRun.url,
       savedRun.goal,
@@ -226,10 +233,10 @@ export async function POST(request: Request) {
       memoryNote,
     });
 
-    await mirrorTestRunToInsforge(completedRun ?? savedRun);
+    const runForResponse = completedRun ?? savedRun;
 
-    const appUrl = env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const reportUrl = `${appUrl.replace(/\/$/, "")}/runs/${savedRun.id}`;
+    const appUrl = getReportBaseUrl(request);
+    const reportUrl = `${appUrl.replace(/\/$/, "")}/runs/${runForResponse.id}`;
     const isFailed = report.result === "failed";
     const status = isFailed ? "Failed" : "Passed";
     const mainIssue =

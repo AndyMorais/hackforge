@@ -34,15 +34,20 @@ type SaveTestRunInput = RunWebsiteTestResult &
   memoryNote?: string;
 };
 
-const dataDir = path.join(process.cwd(), "data");
-const testRunsFile = path.join(dataDir, "test-runs.json");
+const testRunsFile = path.join(getProjectRoot(), "data", "test-runs.json");
+
+function getProjectRoot() {
+  return process.env.npm_package_json
+    ? path.dirname(process.env.npm_package_json)
+    : process.cwd();
+}
 
 function createRunId() {
   return `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 async function ensureStore() {
-  await mkdir(dataDir, { recursive: true });
+  await mkdir(path.dirname(testRunsFile), { recursive: true });
 
   try {
     await readFile(testRunsFile, "utf8");

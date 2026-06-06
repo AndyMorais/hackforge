@@ -1,14 +1,6 @@
 import { after } from "next/server";
 import { env } from "@/lib/env";
-import { mirrorTestRunToInsforge } from "@/lib/insforge/testRuns";
-import { generateReport } from "@/lib/qa/generateReport";
-import { runWebsiteTest } from "@/lib/qa/runWebsiteTest";
-import {
-  getPreviousRunForSameTest,
-  saveTestRun,
-  updateTestRunMemory,
-  type TestRun,
-} from "@/lib/storage/testRuns";
+import type { TestRun } from "@/lib/storage/testRuns";
 
 export const maxDuration = 60;
 
@@ -222,7 +214,24 @@ async function runQaAndPostResult({
   responseUrl: string;
   url: string;
 }) {
+  console.log("Background QA started");
+
   try {
+    const [
+      { mirrorTestRunToInsforge },
+      { generateReport },
+      { runWebsiteTest },
+      {
+        getPreviousRunForSameTest,
+        saveTestRun,
+        updateTestRunMemory,
+      },
+    ] = await Promise.all([
+      import("@/lib/insforge/testRuns"),
+      import("@/lib/qa/generateReport"),
+      import("@/lib/qa/runWebsiteTest"),
+      import("@/lib/storage/testRuns"),
+    ]);
     const testResult = await runWebsiteTest({ url, goal });
     const report = generateReport(testResult);
     const runId = createRunId();
@@ -321,6 +330,8 @@ async function runQaAndPostResult({
       response_type: "in_channel",
       text: `QA test failed to complete. ${message}`,
     });
+  } finally {
+    console.log("Background QA finished");
   }
 }
 
@@ -356,6 +367,8 @@ export async function POST(request: Request) {
   };
   const { url, goal } = parseCommandText(payload.text);
 
+  console.log("Slack command received");
+
   if (!url || !goal) {
     return Response.json({
       response_type: "ephemeral",
@@ -365,14 +378,16 @@ export async function POST(request: Request) {
 
   const appUrl = getReportBaseUrl(request);
 
-  after(() =>
-    runQaAndPostResult({
+  after(() => {
+    void runQaAndPostResult({
       appUrl,
       goal,
       responseUrl: payload.responseUrl,
       url,
-    }),
-  );
+    });
+  });
+
+  console.log("Immediate Slack response sent");
 
   return Response.json({
     response_type: "in_channel",
